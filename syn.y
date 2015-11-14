@@ -94,20 +94,21 @@ EXTDEF:
 							}
 
 	|	SPEC FUNC STMTBLOCK	{
-								cout<<"deal with extdef -> spec func stmtblock\n";
-								addNode("EXTDEF");arr[counter-1].son[2] = stk.top();stk.pop();
-								arr[counter-1].son[1] = stk.top();stk.pop();
-								arr[counter-1].son[0] = stk.top();stk.pop();
-								stk.push(&arr[counter-1]);
+								cout<<"-1";cout<<"deal with extdef -> spec func stmtblock\n";cout<<"-1";
+								addNode("EXTDEF");cout<<"0";
+								arr[counter-1].son[2] = stk.top();stk.pop();
+								arr[counter-1].son[1] = stk.top();stk.pop();cout<<"2";
+								arr[counter-1].son[0] = stk.top();stk.pop();cout<<"3";
+								stk.push(&arr[counter-1]);cout<<"4";
 							}
 	;
 
 EXTVARS:
 		DEC             	{
 								cout<<"deal with extvars -> dec\n";
-								 addNode("EXTVARS");
-								 arr[counter-1].son[0] = stk.top();stk.pop();
-								 stk.push(&arr[counter-1]);
+								addNode("EXTVARS");
+								arr[counter-1].son[0] = stk.top();stk.pop();
+								stk.push(&arr[counter-1]);
 							}
 
 	|	DEC COMMA EXTVARS   {
@@ -147,7 +148,8 @@ STSPEC:
 										arr[counter-4].son[0] = &arr[counter-3];
 										arr[counter-4].son[3] = stk.top();stk.pop();
 										arr[counter-4].son[1] = stk.top();stk.pop();
-										arr[counter-4].son[2] = &arr[counter-2];arr[counter-4].son[4] = &arr[counter-1];
+										arr[counter-4].son[2] = &arr[counter-2];
+										arr[counter-4].son[4] = &arr[counter-1];
 										stk.push(&arr[counter-4]);
 									}
 
@@ -155,7 +157,7 @@ STSPEC:
 										cout<<"deal with stspec -> struct id\n";					
 										addNode("STSPEC");addNode("STRUCT");char *tmp = ("ID(%s)",$2);addNode(tmp);
 										arr[counter-3].son[0] = &arr[counter-2];arr[counter-3].son[1] = &arr[counter-1];
-										stk.push(&arr[counter-1]);								
+										stk.push(&arr[counter-3]);								
 									}
 
 OPTTAG:
@@ -193,23 +195,25 @@ VAR:
 									}
 	;
 
-FUNC:
+FUNC://okkkkkkkkkkkkkkkkkkkkkkkkkkkkkk
 		ID LP PARAS RP				{
 										cout<<"deal with func -> id lp paras rp\n";
 										addNode("FUNC");char *tmp = ("ID(%s)",$1);addNode(tmp);addNode("LP");addNode("RP");
-										arr[counter-4].son[0] = &arr[counter-3];arr[counter-4].son[1] = &arr[counter-2];
-										arr[counter-4].son[3] = &arr[counter-1];arr[counter-4].son[2] = stk.top();stk.pop();
+										arr[counter-4].son[0] = &arr[counter-3];
+										arr[counter-4].son[1] = &arr[counter-2];
+										arr[counter-4].son[3] = &arr[counter-1];
+										arr[counter-4].son[2] = stk.top();stk.pop();
 										stk.push(&arr[counter-4]);
 									}
 	;
 
-PARAS:
+PARAS://okkkkkkkkkkkkkkkkkkkkkkkkkkkkkk
 		PARA COMMA PARAS            {
 										cout<<"deal with paras -> para comma paras\n";
 										addNode("PARAS");addNode("COMMA");
 										arr[counter-2].son[2] = stk.top();stk.pop();
 										arr[counter-2].son[1] = &arr[counter-1];arr[counter-2].son[0] = stk.top();stk.pop();
-										stk.push(&arr[counter-1]);
+										stk.push(&arr[counter-2]);
 									}
 
 	|	PARA                        {
@@ -226,36 +230,39 @@ PARAS:
 									}
 	;
 
-PARA:							
+PARA://okkkkkkkkkkkkkkkkkkkkkkkkkkkkkk						
 		SPEC VAR                    {
 										cout<<"deal with para -> spec var\n";
 										addNode("PARA");
-										arr[counter-1].son[0] = stk.top();stk.pop();
-										stk.push(&arr[counter-1]);
-									}
-	;
-
-STMTBLOCK:							
-		LC DEFS STMTS RC            {
-										cout<<"deal with stmtblock -> lc defs stmts rc\n";
-										addNode("STMTBLOCK");
-										addNode("LC");
-										addNode("RC");
-										arr[counter-3].son[0] = &arr[counter-2];
-										arr[counter-3].son[3] = &arr[counter-1];
-										arr[counter-3].son[2] = stk.top();stk.pop();
-										arr[counter-3].son[1] = stk.top();stk.pop();
-										stk.push(&arr[counter-3]);
-									}
-	;
-
-STMTS:
-		STMT STMTS                  {
-										cout<<"deal with stmts -> stmt stmts\n";
-										addNode("STMTS");
 										arr[counter-1].son[1] = stk.top();stk.pop();
 										arr[counter-1].son[0] = stk.top();stk.pop();
 										stk.push(&arr[counter-1]);
+									}
+	;
+
+STMTBLOCK:	//okkkkkkkkkkkkkkkkkkkkkkkkkkkkkk						
+		LC DEFS STMTS RC            {
+										cout<<"deal with stmtblock -> lc defs stmts rc\n";
+										addNode("STMTBLOCK");cout<<"1";
+										addNode("LC");cout<<"2";
+										addNode("RC");cout<<"3";
+										cout<<'*'<<counter<<'*';
+										arr[counter-3].son[0] = &arr[counter-2];cout<<"4";
+										arr[counter-3].son[3] = &arr[counter-1];cout<<"5";
+										arr[counter-3].son[2] = stk.top();stk.pop();cout<<"6";
+										arr[counter-3].son[1] = stk.top();stk.pop();cout<<"7";
+										stk.push(&arr[counter-3]);cout<<"8";
+									}
+	;
+
+STMTS://okkkkkkkkkkkkkkkkkkkkkkkkkkkkkk
+		STMT STMTS                  {
+										cout<<"deal with stmts -> stmt stmts\n";
+										cout<<"1";
+										addNode("STMTS");cout<<"2";
+										arr[counter-1].son[1] = stk.top();stk.pop();cout<<"3";
+										arr[counter-1].son[0] = stk.top();stk.pop();cout<<"4";
+										stk.push(&arr[counter-1]);cout<<"5";
 									}
 
 	|	/*EMPTY*/					{
@@ -266,7 +273,7 @@ STMTS:
 									}
 	;
 
-STMT:
+STMT://okkkkkkkkkkkkkkkkkkkkkkkkkkkkkk
 		EXP SEMI                                        {
 															cout<<"deal with stmt -> exp semi\n";
 															addNode("STMT");addNode("SEMI");
@@ -277,15 +284,16 @@ STMT:
 	|	STMTBLOCK                                       {
 															cout<<"deal with stmt -> stmtblock\n";
 															addNode("STMT");
-															arr[counter-1].son[1] = stk.top();stk.pop();stk.push(&arr[counter-1]);
+															arr[counter-1].son[0] = stk.top();stk.pop();
+															stk.push(&arr[counter-1]);
 														}
 	|	RETURN EXP SEMI                                 {
 															cout<<"deal with stmt -> stmtblock\n";
-															addNode("STMT");addNode("SEMI");
-															arr[counter-2].son[0] = stk.top();stk.pop();
-															arr[counter-2].son[1] = stk.top();stk.pop();
-															arr[counter-2].son[2] = &arr[counter-1];
-															stk.push(&arr[counter-2]);
+															addNode("STMT");addNode("RETURN");addNode("SEMI");
+															arr[counter-3].son[1] = stk.top();stk.pop();
+															arr[counter-3].son[0] =&arr[counter-2];
+															arr[counter-3].son[2] = &arr[counter-1];
+															stk.push(&arr[counter-3]);
 														}
 
 	|	IF LP EXP RP STMT ESTMT                         {
@@ -311,7 +319,7 @@ STMT:
 															arr[counter-6].son[6] = stk.top();stk.pop();
 															arr[counter-6].son[4] = stk.top();stk.pop();
 															arr[counter-6].son[2] = stk.top();stk.pop();
-															stk.push(&arr[counter-4]);
+															stk.push(&arr[counter-6]);
 														}
 
 	|	CONT SEMI                                       {
@@ -325,7 +333,7 @@ STMT:
 	|	BREAK SEMI                                      {
 															cout<<"deal with stmt -> break semi\n";
 															addNode("STMT");addNode("BREAK");addNode("STMI");
-															cout<<arr[0].syn<<arr[1].syn<<arr[2].syn;
+												
 															arr[counter-3].son[0] = &arr[counter-2];
 															arr[counter-3].son[1] = &arr[counter-1];
 															stk.push(&arr[counter-3]);
@@ -344,6 +352,7 @@ ESTMT:
 															cout<<"deal with estmt -> empty\n";
 															addNode("ESTMT");addNode("empty");
 															arr[counter-2].son[0] = &arr[counter-1];
+															stk.push(&arr[counter-2]);
 														}
 
 	;
@@ -351,13 +360,13 @@ ESTMT:
 
 
 
-DEFS:
+DEFS://okkkkkkkkkkkkkkkkkkkkkkkkkkkkkk
 		DEF DEFS                                       {
 															cout<<"deal with defs -> def defs\n";
 															addNode("DEFS");
-															arr[counter-1].son[2] = stk.top();stk.pop();
 															arr[counter-1].son[1] = stk.top();stk.pop();
-															stk.push(&arr[counter-2]);
+															arr[counter-1].son[0] = stk.top();stk.pop();
+															stk.push(&arr[counter-1]);
 														}
 
 	|	/*EMPTY*/	      				          		{
@@ -368,18 +377,18 @@ DEFS:
 														}
 	;
      
-DEF:
+DEF://okkkkkkkkkkkkkkkkkkkkkkkkkkkkkk
 		SPEC DECS SEMI      			                {
 															cout<<"deal with def -> spec decs semi\n";
 															addNode("DEF");addNode("SEMI");
 															arr[counter-2].son[1] = stk.top();stk.pop();
 															arr[counter-2].son[0] = stk.top();stk.pop();
-															arr[counter-2].son[0] = &arr[counter-1];
+															arr[counter-2].son[2] = &arr[counter-1];
 															stk.push(&arr[counter-2]);	
 														}
 	;
 
-DECS:
+DECS://okkkkkkkkkkkkkkkkkkkkkkkkkkkkkk
 		DEC COMMA DECS      {
 								cout<<"deal with decs -> dec comma decs\n";
 								addNode("DECS");addNode("COMMA");
@@ -396,7 +405,7 @@ DECS:
 							}
 	;
 
-DEC:
+DEC://okkkkkkkkkkkkkkkkkkkkkkkkkkkkkk
 		VAR					{
 								cout<<"deal with dec -> var\n";
 								addNode("DEC");
@@ -434,7 +443,7 @@ INIT:
 							}
 	;
 
-EXP:
+EXP://okkkkkkkkkkkkkkkkkkkkkkkkkkkkkk
 		LP EXP RP           {
 								cout<<"deal with exp -> lp exp rp\n";
 								addNode("EXP");addNode("LP");addNode("RP");
@@ -625,7 +634,7 @@ EXP:
 								stk.push(&arr[counter-2]);
 							}	
 	;
-FEXP:
+FEXP://okkkkkkkkkkkkkkkkkkkkkkkkkkkkkk
 		EXP 				{
 								cout<<"deal with fexp -> exp\n";
 								addNode("FEXP");
@@ -639,7 +648,7 @@ FEXP:
 							}
 
 
-ARRS:
+ARRS://okkkkkkkkkkkkkkkkkkkkkkkkkkkkkk
 		LB EXP RB ARRS      {
 								cout<<"deal with arrs -> lb exp rb arrs\n";
 								addNode("ARRS");
@@ -659,7 +668,7 @@ ARRS:
 							}
 	;
 
-ARGS:
+ARGS://okkkkkkkkkkkkkkkkkkkkkkkkkkkkkk
 		EXP COMMA ARGS      {
 								cout<<"deal with args -> exp comma args\n";
 								addNode("ARRS");
@@ -667,7 +676,7 @@ ARGS:
 								arr[counter-2].son[1] = &arr[counter-1];
 								arr[counter-2].son[2] = stk.top();stk.pop();
 								arr[counter-2].son[0] = stk.top();stk.pop();
-								stk.push(&arr[counter-3]);	
+								stk.push(&arr[counter-2]);	
 							}	
 
 	|	EXP					{

@@ -19,7 +19,7 @@ struct treeNode
 //treeNode *arr;
 int counter=0;
 char temp;
-treeNode arr[100];
+treeNode arr[1000];
 
 void addNode(string str)
 {
