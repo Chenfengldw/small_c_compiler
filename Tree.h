@@ -10,8 +10,8 @@ struct treeNode
 
     treeNode()
     {
-		son = new treeNode *[10];
-		for(int i=0;i<10;++i)son[i] = NULL;
+		son = new treeNode *[100];
+		for(int i=0;i<100;++i)son[i] = NULL;
 		syn = "";
     }
 
@@ -38,7 +38,7 @@ void preOrder(treeNode *root,int tmp)
 	makeTab(tmp);
 	cout<<root->syn<<endl;
 	if (root->son[0] == NULL)return;
-	for (int i=0;i<10;++i)
+	for (int i=0;i<100;++i)
 	{
 		if(root->son[i] == NULL)break;	
 		preOrder(root->son[i],tmp+4);

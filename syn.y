@@ -5,423 +5,737 @@
 }
 
 %{
-
 #include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <string.h>
-#include <ctype.h>
 #include <stack>
 #include "Tree.h"
-
-void yyerror(const char *str){
-    fprintf(stderr,"error: %s\n", str);
-}
-
-
-
+extern FILE *yyin;
+extern FILE *yyout;
+extern int yylineno;
+extern char *yytext;
+/*Solve warning: implicit declaration*/
+int yyerror (const char *msg);
 int yylex();
 stack<treeNode *> stk;
-
-
+bool printFlag = true;
 %}
 
-//%token <iValue> INT
-//%token <sIndex> ID
-%token INT ID SEMI COMMA DOT ASSIGNOP TYPE LP RP LB RB LC RC STRUCT RETURN IF ELSE BREAK CONT FOR
-%start PROGRAM
+
+%token INT    /*bind the yylval type*/
+%token ID
+%token UNARYOP
+%token BINARYOP
+%token PLUS
+%token MINUS
+%token SHIFTOP
+%token COMPAREOP
+%token EQUALOP
+%token BITAND
+%token BITXOR
+%token BITOR
+%token LOGICALAND
+%token LOGICALOR
+%token BINASSIGNOP
+%token TYPE
+%token SEMI COMMA DOT ASSIGNOP LP RP LB RB LC RC STRUCT RETURN IF THEN ELSE BREAK CONT FOR
 
 %right	NOELSE ELSE
-%right 	ASSIGNOP
-%left BINARYOP1 '-'
-%left BINARYOP2
-%right UMINUS
-%left DOT LP RP LB RB
+%right 		ASSIGNOP BINASSIGNOP
+%left       LOGICALOR
+%left		LOGICALAND
+%left       BITOR
+%left		BITXOR
+%left       BITAND
+%left		EQUALOP
+%left		COMPAREOP 
+%left		SHIFTOP 
+%left		PLUS MINUS
+%left    	BINARYOP 
+%right		UNARYOP UNMINUS
+%left		DOT LP RP LB RB
+
+%start PROGRAM
 
 %%
-PROGRAM     :   EXTDEFS {cout<<1<<' ';
-					addNode("PROGRAM");
-					arr[counter-1].son[0] = stk.top();stk.pop();
-					stk.push(&arr[counter-1]);
-				} 
-            ;
+PROGRAM:
+		EXTDEFS				{
+								cout<<"deal with PROGRAM -> extdefs\n";
+								addNode("PROGRAM");
+								arr[counter-1].son[0] = stk.top();stk.pop();
+								stk.push(&arr[counter-1]);
+							}
+	;
+
+EXTDEFS:
+		EXTDEF EXTDEFS		{
+								cout<<"deal with extdefs -> extdef extdefs\n";
+								addNode("EXTDEFS");
+								arr[counter-1].son[1] = stk.top();stk.pop();
+								arr[counter-1].son[0] = stk.top();stk.pop();
+								stk.push(&arr[counter-1]);
+							}
+
+	|	/*EMPTY*/			{
+								cout<<"deal with extdefs -> empty\n";
+								addNode("EXTDEFS");addNode("empty");arr[counter-2].son[0] =&arr[counter-1];
+								stk.push(&arr[counter-2]);
+							}
+								
+	;
+
+EXTDEF:
+		SPEC EXTVARS SEMI   {
+								cout<<"deal with extdef -> spec extvars semi\n";
+								addNode("EXTDEF");addNode("SEMI");
+								arr[counter-2].son[1] = stk.top();stk.pop();
+								arr[counter-2].son[0] = stk.top();stk.pop();
+								arr[counter-2].son[2] = &arr[counter-1];
+								stk.push(&arr[counter-2]); 
+
+							}
+
+	|	SPEC FUNC STMTBLOCK	{
+								cout<<"deal with extdef -> spec func stmtblock\n";
+								addNode("EXTDEF");arr[counter-1].son[2] = stk.top();stk.pop();
+								arr[counter-1].son[1] = stk.top();stk.pop();
+								arr[counter-1].son[0] = stk.top();stk.pop();
+								stk.push(&arr[counter-1]);
+							}
+	;
+
+EXTVARS:
+		DEC             	{
+								cout<<"deal with extvars -> dec\n";
+								 addNode("EXTVARS");
+								 arr[counter-1].son[0] = stk.top();stk.pop();
+								 stk.push(&arr[counter-1]);
+							}
+
+	|	DEC COMMA EXTVARS   {
+								cout<<"deal with extvars -> dec comma extvars\n";
+								addNode("EXTVARS");addNode("COMMA");
+								arr[counter-2].son[1] = &arr[counter-1];
+								arr[counter-2].son[2]=stk.top();stk.pop();
+								arr[counter-2].son[0]=stk.top();stk.pop();
+								stk.push(&arr[counter-2]);
+							}
+
+	|	/*EMPTY*/			{
+								addNode("EXTVARS");addNode("empty");arr[counter-2].son[0] =&arr[counter-1];
+								stk.push(&arr[counter-2]);
+							}
+	;
+
+SPEC:
+		TYPE            	{
+								cout<<"deal with spec -> type\n";
+								addNode("SPEC");addNode("TYPE");
+								arr[counter-2].son[0] = &arr[counter-1];
+								stk.push(&arr[counter-2]);
+							}
+
+	|	STSPEC				{
+								cout<<"deal with spec -> stspec\n";
+								addNode("SPEC");arr[counter-1].son[0] = stk.top();stk.pop();
+								stk.push(&arr[counter-1]);
+							}
+	;
+
+STSPEC:
+		STRUCT OPTTAG LC DEFS RC	{
+										cout<<"deal with stspec -> struct opttag lc defs rc\n";
+										addNode("STSPEC");addNode("STRUCT");addNode("LC");addNode("RC");
+										arr[counter-4].son[0] = &arr[counter-3];
+										arr[counter-4].son[3] = stk.top();stk.pop();
+										arr[counter-4].son[1] = stk.top();stk.pop();
+										arr[counter-4].son[2] = &arr[counter-2];arr[counter-4].son[4] = &arr[counter-1];
+										stk.push(&arr[counter-4]);
+									}
+
+	|	STRUCT ID           		{
+										cout<<"deal with stspec -> struct id\n";					
+										addNode("STSPEC");addNode("STRUCT");char *tmp = ("ID(%s)",$2);addNode(tmp);
+										arr[counter-3].son[0] = &arr[counter-2];arr[counter-3].son[1] = &arr[counter-1];
+										stk.push(&arr[counter-1]);								
+									}
+
+OPTTAG:
+	ID                  			{
+										cout<<"deal with opttag -> id\n";
+										addNode("OPTTAG");char *tmp = ("ID(%s)",$1);addNode(tmp);
+										arr[counter-2].son[0] = &arr[counter-1];
+										stk.push(&arr[counter-2]);
+									}
+
+	|	/*EMPTY*/					{
+										cout<<"deal with opttag -> empty\n";
+										addNode("OPTTAG");addNode("empty");
+										arr[counter-2].son[0] =&arr[counter-1];
+										stk.push(&arr[counter-2]);
+									}	
+	;
+
+VAR:
+		ID               			{
+										cout<<"deal with var -> id \n";
+										addNode("VAR");char *tmp = ("ID(%s)",$1);addNode(tmp);//addNode(($1));
+										arr[counter-2].son[0] = &arr[counter-1];
+										stk.push(&arr[counter-2]);
+									}
+
+	|	VAR LB INT RB				{
+										cout<<"deal with var -> var lb int rb\n";
+										addNode("VAR");addNode("LB");char *tmp = ("INT(%s)",$3);addNode(tmp);addNode("RB");
+										arr[counter-4].son[0] = stk.top();stk.pop();
+										arr[counter-4].son[1] = &arr[counter-3];
+										arr[counter-4].son[2] = &arr[counter-2];
+										arr[counter-4].son[3] = &arr[counter-1];
+										stk.push(&arr[counter-4]);
+									}
+	;
+
+FUNC:
+		ID LP PARAS RP				{
+										cout<<"deal with func -> id lp paras rp\n";
+										addNode("FUNC");char *tmp = ("ID(%s)",$1);addNode(tmp);addNode("LP");addNode("RP");
+										arr[counter-4].son[0] = &arr[counter-3];arr[counter-4].son[1] = &arr[counter-2];
+										arr[counter-4].son[3] = &arr[counter-1];arr[counter-4].son[2] = stk.top();stk.pop();
+										stk.push(&arr[counter-4]);
+									}
+	;
+
+PARAS:
+		PARA COMMA PARAS            {
+										cout<<"deal with paras -> para comma paras\n";
+										addNode("PARAS");addNode("COMMA");
+										arr[counter-2].son[2] = stk.top();stk.pop();
+										arr[counter-2].son[1] = &arr[counter-1];arr[counter-2].son[0] = stk.top();stk.pop();
+										stk.push(&arr[counter-1]);
+									}
+
+	|	PARA                        {
+										cout<<"deal with paras -> para\n";
+										addNode("PARAS");
+										arr[counter-1].son[0] = stk.top();stk.pop();
+										stk.push(&arr[counter-1]);
+									}
+	|	/*EMPTY*/				    {
+										cout<<"deal with paras -> empty\n";
+										addNode("PARAS");addNode("empty");
+										arr[counter-2].son[0] =&arr[counter-1];
+										stk.push(&arr[counter-2]);							
+									}
+	;
+
+PARA:							
+		SPEC VAR                    {
+										cout<<"deal with para -> spec var\n";
+										addNode("PARA");
+										arr[counter-1].son[0] = stk.top();stk.pop();
+										stk.push(&arr[counter-1]);
+									}
+	;
+
+STMTBLOCK:							
+		LC DEFS STMTS RC            {
+										cout<<"deal with stmtblock -> lc defs stmts rc\n";
+										addNode("STMTBLOCK");
+										addNode("LC");
+										addNode("RC");
+										arr[counter-3].son[0] = &arr[counter-2];
+										arr[counter-3].son[3] = &arr[counter-1];
+										arr[counter-3].son[2] = stk.top();stk.pop();
+										arr[counter-3].son[1] = stk.top();stk.pop();
+										stk.push(&arr[counter-3]);
+									}
+	;
+
+STMTS:
+		STMT STMTS                  {
+										cout<<"deal with stmts -> stmt stmts\n";
+										addNode("STMTS");
+										arr[counter-1].son[1] = stk.top();stk.pop();
+										arr[counter-1].son[0] = stk.top();stk.pop();
+										stk.push(&arr[counter-1]);
+									}
+
+	|	/*EMPTY*/					{
+										cout<<"deal with stmts -> empty\n";
+										addNode("STMTS");addNode("empty");
+										arr[counter-2].son[0] = &arr[counter-1];
+										stk.push(&arr[counter-2]);										
+									}
+	;
+
+STMT:
+		EXP SEMI                                        {
+															cout<<"deal with stmt -> exp semi\n";
+															addNode("STMT");addNode("SEMI");
+															arr[counter-2].son[0] = stk.top();stk.pop();
+															arr[counter-2].son[1] = &arr[counter-1];
+															stk.push(&arr[counter-2]);
+														}
+	|	STMTBLOCK                                       {
+															cout<<"deal with stmt -> stmtblock\n";
+															addNode("STMT");
+															arr[counter-1].son[1] = stk.top();stk.pop();stk.push(&arr[counter-1]);
+														}
+	|	RETURN EXP SEMI                                 {
+															cout<<"deal with stmt -> stmtblock\n";
+															addNode("STMT");addNode("SEMI");
+															arr[counter-2].son[0] = stk.top();stk.pop();
+															arr[counter-2].son[1] = stk.top();stk.pop();
+															arr[counter-2].son[2] = &arr[counter-1];
+															stk.push(&arr[counter-2]);
+														}
+
+	|	IF LP EXP RP STMT ESTMT                         {
+															cout<<"deal with stmt -> if lp exp rp stmt estmt\n";
+															addNode("STMT");addNode("IF");addNode("LP");addNode("RP");
+															arr[counter-4].son[0] = &arr[counter-3];
+															arr[counter-4].son[1] = &arr[counter-2];
+															arr[counter-4].son[3] = &arr[counter-1];
+															arr[counter-4].son[5] = stk.top();stk.pop();
+															arr[counter-4].son[4] = stk.top();stk.pop();
+															arr[counter-4].son[2] = stk.top();stk.pop();
+															stk.push(&arr[counter-4]);
+														}
+
+	|	FOR LP FEXP SEMI FEXP SEMI FEXP RP STMT            {
+															addNode("STMT");addNode("FOR");addNode("LP");addNode("SEMI");addNode("SEMI");addNode("RP");
+															arr[counter-6].son[0] = &arr[counter-5];
+															arr[counter-6].son[1] = &arr[counter-4];
+															arr[counter-6].son[3] = &arr[counter-3];
+															arr[counter-6].son[5] = &arr[counter-2];
+															arr[counter-6].son[7] = &arr[counter-1];
+															arr[counter-6].son[8] = stk.top();stk.pop();
+															arr[counter-6].son[6] = stk.top();stk.pop();
+															arr[counter-6].son[4] = stk.top();stk.pop();
+															arr[counter-6].son[2] = stk.top();stk.pop();
+															stk.push(&arr[counter-4]);
+														}
+
+	|	CONT SEMI                                       {
+															cout<<"deal with stmt -> cont semi\n";
+															addNode("STMT");addNode("SEMI");
+															arr[counter-2].son[1] = &arr[counter-1];
+															arr[counter-2].son[0] = stk.top();stk.pop();
+															stk.push(&arr[counter-2]);	
+														} 
+
+	|	BREAK SEMI                                      {
+															cout<<"deal with stmt -> break semi\n";
+															addNode("STMT");addNode("BREAK");addNode("STMI");
+															cout<<arr[0].syn<<arr[1].syn<<arr[2].syn;
+															arr[counter-3].son[0] = &arr[counter-2];
+															arr[counter-3].son[1] = &arr[counter-1];
+															stk.push(&arr[counter-3]);
+														} 
+	;
+
+ESTMT:
+		ELSE STMT           		                    {
+															cout<<"deal with estmt -> else stmt\n";
+															addNode("ESTMT");addNode("ELSE");
+															arr[counter-2].son[0] = &arr[counter-1];
+															arr[counter-2].son[1] = stk.top();stk.pop();
+															stk.push(&arr[counter-2]);
+														}
+	|						%prec NOELSE                {
+															cout<<"deal with estmt -> empty\n";
+															addNode("ESTMT");addNode("empty");
+															arr[counter-2].son[0] = &arr[counter-1];
+														}
+
+	;
 
 
 
-EXTDEFS     :   EXTDEF EXTDEFS { cout<<2<<' ';
-					addNode("EXTDEFS");
-					arr[counter-1].son[1] = stk.top();stk.pop();
-					arr[counter-1].son[0] = stk.top();stk.pop();
-					stk.push(&arr[counter-1]);
-				}
-            |   /* */{addNode("EXTDEFS");addNode("empty");arr[counter-2].son[0] =&arr[counter-1];stk.push(&arr[counter-2]);} //{ $$ = opr('e', 0); }
-            ;
 
-EXTDEF      :   SPEC EXTVARS SEMI {cout<<3<<' ';
-					addNode("EXTDEF");addNode("SEMI");
-					arr[counter-2].son[1] = stk.top();stk.pop();
-					arr[counter-2].son[0] = stk.top();stk.pop();
-					arr[counter-2].son[2] = &arr[counter-1];
-					stk.push(&arr[counter-2]); 
-				}
-            |   SPEC FUNC STMTBLOCK  {cout<<4<<' ';
-					addNode("EXTDEF");arr[counter-1].son[2] = stk.top();
-					stk.pop();arr[counter-1].son[1] = stk.top();stk.pop();
-					arr[counter-1].son[0] = stk.top();stk.pop();
-					stk.push(&arr[counter-1]);
-				}
-            ;
+DEFS:
+		DEF DEFS                                       {
+															cout<<"deal with defs -> def defs\n";
+															addNode("DEFS");
+															arr[counter-1].son[2] = stk.top();stk.pop();
+															arr[counter-1].son[1] = stk.top();stk.pop();
+															stk.push(&arr[counter-2]);
+														}
 
-EXTVARS     :   DEC {cout<<5<<' ';
-					 addNode("EXTVARS");
-					 arr[counter-1].son[0] = stk.top();stk.pop();
-					 stk.push(&arr[counter-1]);
-				}
+	|	/*EMPTY*/	      				          		{
+															cout<<"deal with defs -> empty\n";
+															addNode("DEFS");addNode("empty");
+															arr[counter-2].son[0] = &arr[counter-1];
+															stk.push(&arr[counter-2]);										
+														}
+	;
+     
+DEF:
+		SPEC DECS SEMI      			                {
+															cout<<"deal with def -> spec decs semi\n";
+															addNode("DEF");addNode("SEMI");
+															arr[counter-2].son[1] = stk.top();stk.pop();
+															arr[counter-2].son[0] = stk.top();stk.pop();
+															arr[counter-2].son[0] = &arr[counter-1];
+															stk.push(&arr[counter-2]);	
+														}
+	;
 
-            |   DEC COMMA EXTVARS { cout<<6<<' ';
-					addNode("EXTVARS");addNode("COMMA");
-					arr[counter-2].son[1] = &arr[counter-1];arr[counter-2].son[2]=stk.top();stk.pop();
-					arr[counter-2].son[0]=stk.top();stk.pop();
-					stk.push(&arr[counter-2]);
-				}
+DECS:
+		DEC COMMA DECS      {
+								cout<<"deal with decs -> dec comma decs\n";
+								addNode("DECS");addNode("COMMA");
+								arr[counter-2].son[2] = stk.top();stk.pop();
+								arr[counter-2].son[0] = stk.top();stk.pop();
+								arr[counter-2].son[1] = &arr[counter-1];
+								stk.push(&arr[counter-2]);
+							}
+	|	DEC                 {
+								cout<<"deal with decs -> dec\n";
+								addNode("DECS");
+								arr[counter-1].son[0] = stk.top();stk.pop();	
+								stk.push(&arr[counter-1]);								
+							}
+	;
 
-            |   /* */{addNode("EXTVARS");addNode("empty");arr[counter-2].son[0] =&arr[counter-1];stk.push(&arr[counter-2]);} //{ $$ = opr('e', 0);}
-            ;
+DEC:
+		VAR					{
+								cout<<"deal with dec -> var\n";
+								addNode("DEC");
+								arr[counter-1].son[0] = stk.top();stk.pop();	
+								stk.push(&arr[counter-1]);	
+							}	
 
-SPEC        :   TYPE { cout<<7<<' ';
-					addNode("SPEC");addNode("TYPE");
-					arr[counter-2].son[0] = &arr[counter-1];
-					stk.push(&arr[counter-2]);
-				}
+	|	VAR ASSIGNOP INIT	{
+								cout<<"deal with dec -> var assignop init\n";
+								addNode("DEC");addNode("ASSIGNOP");
+								arr[counter-2].son[2] = stk.top();stk.pop();
+								arr[counter-2].son[0] = stk.top();stk.pop();
+								arr[counter-2].son[1] = &arr[counter-1];
+								stk.push(&arr[counter-2]);	
+							}	
+	;
 
-            |   STSPEC {cout<<8<<' ';
-					addNode("SPEC");arr[counter-1].son[0] = stk.top();stk.pop();
-					stk.push(&arr[counter-1]);
-				}
-            ;
+INIT:
+		EXP                 {
+								cout<<"deal with init -> exp\n";
+								addNode("INIT");
+								arr[counter-1].son[0] = stk.top();stk.pop();	
+								stk.push(&arr[counter-1]);	 
+		                    }
 
-STSPEC      :   STRUCT OPTTAG LC DEFS RC {cout<<9<<' ';
-					addNode("STSPEC");addNode("STRUCT");addNode("LC");addNode("RC");
-					arr[counter-4].son[0] = &arr[counter-3];
-					arr[counter-4].son[3] = stk.top();stk.pop();
-					arr[counter-4].son[1] = stk.top();stk.pop();
-					arr[counter-4].son[2] = &arr[counter-2];arr[counter-4].son[4] = &arr[counter-1];
-					stk.push(&arr[counter-4]);
-				}
+	|	LC ARGS RC          {
+								cout<<"deal with init -> lc args rc\n";
+								addNode("INIT");
+								addNode("LC");
+								addNode("RC");
+								arr[counter-3].son[0] = &arr[counter-2];
+								arr[counter-3].son[2] = &arr[counter-1];
+								arr[counter-3].son[1] = stk.top();stk.pop();	
+								stk.push(&arr[counter-3]);
+							}
+	;
 
-            |   STRUCT ID {cout<<10<<' ';
-					addNode("STSPEC");addNode("STRUCT");char *tmp = ("ID(%s)",$2);addNode(tmp);
-					arr[counter-3].son[0] = &arr[counter-2];arr[counter-3].son[1] = &arr[counter-1];
-					stk.push(&arr[counter-1]);
-				}
+EXP:
+		LP EXP RP           {
+								cout<<"deal with exp -> lp exp rp\n";
+								addNode("EXP");addNode("LP");addNode("RP");
+								arr[counter-3].son[0] = &arr[counter-2];
+								arr[counter-3].son[2] = &arr[counter-1];
+								arr[counter-3].son[1] = stk.top();stk.pop();	
+								stk.push(&arr[counter-3]);	
+							}
+	|	ID LP ARGS RP       {
+								cout<<"deal with exp -> id lp args rp\n";
+								addNode("EXP");addNode("ID");addNode("LP");addNode("RP");
+								arr[counter-4].son[0] = &arr[counter-3];
+								arr[counter-4].son[1] = &arr[counter-2];
+								arr[counter-4].son[2] = stk.top();stk.pop();
+								arr[counter-4].son[3] = &arr[counter-1];	
+								stk.push(&arr[counter-4]);	
+											
+							}
+	|	ID ARRS             {
+								cout<<"deal with exp -> id arrs\n";
+								addNode("EXP");char *tmp = ("ID(%s)",$1);addNode(tmp);
+								arr[counter-2].son[0] = &arr[counter-1];
+								arr[counter-2].son[1] = stk.top();stk.pop();
+								stk.push(&arr[counter-2]);
+							}
+	|	EXP DOT ID /*x.length()?*/{
+								cout<<"deal with exp -> exp dot id\n";
+								addNode("EXP");addNode("DOT");char *tmp = ("ID(%s)",$3);addNode(tmp);
+								arr[counter-3].son[1] = &arr[counter-2];
+								arr[counter-3].son[2] = &arr[counter-1];
+								arr[counter-3].son[0] = stk.top();stk.pop();	
+								stk.push(&arr[counter-3]);				
+							}
+	|	INT                 {
+								cout<<"deal with exp -> int\n";
+								addNode("EXP");char *tmp = ("INT(%d)",$1);addNode(tmp);	
+								arr[counter-2].son[0] = &arr[counter-1];
+								stk.push(&arr[counter-2]);						
+							}
+	|	UNARYOP EXP         {
+								cout<<"deal with exp -> unaryop exp\n";
+								addNode("EXP");addNode("UNIARYOP");
+								arr[counter-2].son[0] = &arr[counter-1];
+								arr[counter-2].son[1] = stk.top();stk.pop();
+								stk.push(&arr[counter-2]);
+	                        }
 
-            ;
+	|	EXP BINARYOP EXP    	{
+								cout<<"deal with exp -> exp BINARYOP exp\n";
+								addNode("EXP");
+								char *tmp = ("BINARYOP:%S",$2);
+								addNode(tmp);
+								arr[counter-2].son[1] = &arr[counter-1];
+								arr[counter-2].son[2] = stk.top();stk.pop();
+								arr[counter-2].son[0] = stk.top();stk.pop();
+								stk.push(&arr[counter-2]);
+							}	
 
-OPTTAG      :   ID {cout<<11<<' ';
-					addNode("OPTTAG");char *tmp = ("ID(%s)",$1);addNode(tmp);
-					arr[counter-2].son[0] = &arr[counter-1];
-					stk.push(&arr[counter-2]);
-				}
+	|	MINUS EXP %prec	UNMINUS {
+								cout<<"deal with exp -> MINUS exp\n";
+								addNode("EXP");addNode("MINUS");
+								arr[counter-2].son[0] = &arr[counter-1];
+								arr[counter-2].son[1] = stk.top();stk.pop();
+								stk.push(&arr[counter-2]);
+							}	
 
-            |   /* */{addNode("OPTTAG");addNode("empty");arr[counter-2].son[0] =&arr[counter-1];stk.push(&arr[counter-2]);} //{ $$ = opr('e', 0); }
-            ;
-VAR         :   ID {cout<<12<<' ';
+	|	EXP MINUS EXP    	{
+								cout<<"deal with exp -> exp MINUS exp\n";
+								addNode("EXP");
+								addNode("BINARYOP:-");
+								arr[counter-2].son[1] = &arr[counter-1];
+								arr[counter-2].son[2] = stk.top();stk.pop();
+								arr[counter-2].son[0] = stk.top();stk.pop();
+								stk.push(&arr[counter-2]);	
+							}	
 
-					addNode("VAR");char *tmp = ("ID(%s)",$1);addNode(tmp);//addNode(($1));
-					arr[counter-2].son[0] = &arr[counter-1];
-					stk.push(&arr[counter-2]);
-				}
 
-            |   VAR LB INT RB {cout<<13<<' ';
-					addNode("VAR");addNode("LB");addNode("INT");addNode("RB");
-					arr[counter-4].son[0] = stk.top();stk.pop();
-					arr[counter-4].son[1] = &arr[counter-3];
-					arr[counter-4].son[2] = &arr[counter-2];
-					arr[counter-4].son[3] = &arr[counter-1];
-					stk.push(&arr[counter-4]);
-				}
+	|	EXP PLUS EXP    	{
+								cout<<"deal with exp -> exp PLUS exp\n";
+								addNode("EXP");
+								addNode("BINARYOP:+");
+								arr[counter-2].son[1] = &arr[counter-1];
+								arr[counter-2].son[2] = stk.top();stk.pop();
+								arr[counter-2].son[0] = stk.top();stk.pop();
+								stk.push(&arr[counter-2]);
+							}	       
 
-FUNC        :   ID LP PARAS RP {cout<<14<<' ';
-					cout<<1;
-					addNode("FUNC");char *tmp = ("ID(%s)",$1);addNode(tmp);addNode("LP");addNode("RP");
-					arr[counter-4].son[0] = &arr[counter-3];arr[counter-4].son[1] = &arr[counter-2];
-					arr[counter-4].son[3] = &arr[counter-1];arr[counter-4].son[2] = stk.top();stk.pop();
-					stk.push(&arr[counter-4]);
-				}
-            ;
-PARAS       :   PARA COMMA PARAS {cout<<15<<' ';
-					addNode("PARAS");addNode("COMMA");
-					arr[counter-2].son[2] = stk.top();stk.pop();
-					arr[counter-2].son[1] = &arr[counter-1];arr[counter-2].son[0] = stk.top();stk.pop();
-					stk.push(&arr[counter-1]);
-				}
-            |   PARA {cout<<16<<' ';
-					addNode("PARAS");
-					arr[counter-1].son[0] = stk.top();stk.pop();
-					stk.push(&arr[counter-1]);
 
-				}
-            |   {
-            ;
-PARA        :   SPEC VAR {cout<<17<<' ';
-					addNode("PARA");
-					arr[counter-1].son[0] = stk.top();stk.pop();
-					stk.push(&arr[counter-1]);
-				}
-            ;
-STMTBLOCK   :   LC DEFS STMTS RC {cout<<18<<' ';
-					addNode("STMTBLOCK");
-					addNode("LC");
-					addNode("RC");
-					arr[counter-3].son[0] = &arr[counter-2];
-					arr[counter-3].son[3] = &arr[counter-1];
-					arr[counter-3].son[2] = stk.top();stk.pop();
-					arr[counter-3].son[1] = stk.top();stk.pop();
-					stk.push(&arr[counter-3]);
-					
-				}
-            ;
-STMTS       :   STMT STMTS {cout<<19<<' ';
-					addNode("STMTS");
-					arr[counter-1].son[1] = stk.top();stk.pop();
-					arr[counter-1].son[0] = stk.top();stk.pop();
-					stk.push(&arr[counter-1]);
-				}
-            |   { addNode("STMTS");addNode("empty");arr[counter-2].son[0] = &arr[counter-1];}
-            ;
-STMT        :   EXP SEMI {cout<<20<<' ';
-					addNode("STMT");addNode("SEMI");
-					arr[counter-2].son[0] = stk.top();stk.pop();
-					arr[counter-2].son[1] = &arr[counter-1];
-					stk.push(&arr[counter-2]);
-				}
-            |   STMTBLOCK { addNode("STMT");arr[counter-1].son[1] = stk.top();stk.pop();stk.push(&arr[counter-1]);}
+	|	EXP SHIFTOP EXP    	{
+								cout<<"deal with exp -> exp SHIFTOP exp\n";
+								addNode("EXP");
+								char *tmp = ("SHIFT(%S)",$2);addNode(tmp);
+								arr[counter-2].son[1] = &arr[counter-1];
+								arr[counter-2].son[2] = stk.top();stk.pop();
+								arr[counter-2].son[0] = stk.top();stk.pop();
+								stk.push(&arr[counter-2]);
+							}	                     
 
-            |   RETURN EXP SEMI {cout<<21<<' ';
-					addNode("STMT");addNode("SEMI");
-					arr[counter-2].son[0] = stk.top();stk.pop();
-					arr[counter-2].son[1] = stk.top();stk.pop();
-					arr[counter-2].son[2] = &arr[counter-1];
-                    stk.push(&arr[counter-2]);
-				}
+	|	EXP COMPAREOP EXP    	{
+								cout<<"deal with exp -> exp COMPAREOP exp\n";
+								addNode("EXP");
+								char *tmp = ("COMPARE(%s)",$2);addNode(tmp);
+								arr[counter-2].son[1] = &arr[counter-1];
+								arr[counter-2].son[2] = stk.top();stk.pop();
+								arr[counter-2].son[0] = stk.top();stk.pop();
+								stk.push(&arr[counter-2]);
+							}
 
-            |   IF LP EXP RP STMT ESTMT {cout<<22<<' ';
-					addNode("STMT");addNode("IF");addNode("LP");addNode("RP");
-					arr[counter-4].son[0] = &arr[counter-3];
-					arr[counter-4].son[1] = &arr[counter-2];
-					arr[counter-4].son[3] = &arr[counter-1];
-					arr[counter-4].son[5] = stk.top();stk.pop();
-					arr[counter-4].son[4] = stk.top();stk.pop();
-					arr[counter-4].son[2] = stk.top();stk.pop();
-                    stk.push(&arr[counter-4]);
-					
-				}
 
-            |   FOR LP EXPS SEMI EXPS SEMI EXPS RP STMT { cout<<23<<' ';
-					addNode("STMT");addNode("FOR");addNode("LP");addNode("SEMI");addNode("SEMI");addNode("RP");
-					arr[counter-6].son[0] = &arr[counter-5];
-					arr[counter-6].son[1] = &arr[counter-4];
-					arr[counter-6].son[3] = &arr[counter-3];
-					arr[counter-6].son[5] = &arr[counter-2];
-					arr[counter-6].son[7] = &arr[counter-1];
-					arr[counter-6].son[8] = stk.top();stk.pop();
-					arr[counter-6].son[6] = stk.top();stk.pop();
-					arr[counter-6].son[4] = stk.top();stk.pop();
-					arr[counter-6].son[2] = stk.top();stk.pop();
-					stk.push(&arr[counter-4]);
-				 }
+	|	EXP EQUALOP EXP    	{
+								cout<<"deal with exp -> exp EQUALOP exp\n";
+								addNode("EXP");
+								char *tmp = ("EQUALOP(%s)",$2);addNode(tmp);
+								arr[counter-2].son[1] = &arr[counter-1];
+								arr[counter-2].son[2] = stk.top();stk.pop();
+								arr[counter-2].son[0] = stk.top();stk.pop();
+								stk.push(&arr[counter-2]);
+							}
 
-            |   CONT SEMI {cout<<24<<' ';
-					addNode("STMT");addNode("SEMI");
-					arr[counter-2].son[1] = &arr[counter-1];
-					arr[counter-2].son[0] = stk.top();stk.pop();
-					stk.push(&arr[counter-2]);					
-				}
 
-            |   BREAK SEMI {cout<<25<<' ';
-					cout<<2;
-					cout<<arr[0].syn<<arr[1].syn<<arr[2].syn;
-					addNode("STMT");addNode("BREAK");addNode("STMI");
-					cout<<arr[0].syn<<arr[1].syn<<arr[2].syn;
-					arr[counter-3].son[0] = &arr[counter-2];
-					arr[counter-3].son[1] = &arr[counter-1];
-					stk.push(&arr[counter-3]);
-			    }
-            ;
+	|	EXP BITXOR EXP    	{
+								cout<<"deal with exp -> exp BITXOR exp\n";
+								addNode("EXP");
+								char *tmp = ("BITXOR(%s)",$2);addNode(tmp);
+								arr[counter-2].son[1] = &arr[counter-1];
+								arr[counter-2].son[2] = stk.top();stk.pop();
+								arr[counter-2].son[0] = stk.top();stk.pop();
+								stk.push(&arr[counter-2]);
+							}
 
-ESTMT       :   ELSE STMT {cout<<26<<' ';
-					addNode("ESTMT");addNode("ELSE");
-					arr[counter-2].son[0] = &arr[counter-1];
-					arr[counter-2].son[1] = stk.top();stk.pop();
-					stk.push(&arr[counter-2]);
-					
-			    }
-            |    %prec NOELSE
-            ;
-DEFS        :   DEF DEFS {cout<<27<<' ';
-					addNode("DEFS");
-					arr[counter-1].son[2] = stk.top();stk.pop();
-					arr[counter-1].son[1] = stk.top();stk.pop();
-					stk.push(&arr[counter-2]);				
-			   }
-            |     { addNode("DEFS");addNode("empty");arr[counter-2].son[0] = &arr[counter-1];}            ;
+	|	EXP BITOR EXP    	{
+								cout<<"deal with exp -> exp BITOR exp\n";
+								addNode("EXP");
+								char *tmp = ("BITOR(%s)",$2);addNode(tmp);
+								arr[counter-2].son[1] = &arr[counter-1];
+								arr[counter-2].son[2] = stk.top();stk.pop();
+								arr[counter-2].son[0] = stk.top();stk.pop();
+								stk.push(&arr[counter-2]);
+							}
 
-DEF         :   SPEC DECS SEMI {cout<<28<<' ';
-					addNode("DEF");addNode("SEMI");
-					arr[counter-2].son[1] = stk.top();stk.pop();
-					arr[counter-2].son[0] = stk.top();stk.pop();
-					arr[counter-2].son[0] = &arr[counter-1];
-					stk.push(&arr[counter-2]);	
-			   }
-            ;
-DECS        :   DEC COMMA DECS {cout<<29<<' ';
-					addNode("DECS");addNode("COMMA");
-					arr[counter-2].son[2] = stk.top();stk.pop();
-					arr[counter-2].son[0] = stk.top();stk.pop();
-					arr[counter-2].son[1] = &arr[counter-1];
-					stk.push(&arr[counter-2]);					
- 			   }
+	|	EXP BITAND EXP    	{
+								cout<<"deal with exp -> exp BITAND exp\n";
+								addNode("EXP");
+								char *tmp = ("BITAND(%s)",$2);addNode(tmp);
+								arr[counter-2].son[1] = &arr[counter-1];
+								arr[counter-2].son[2] = stk.top();stk.pop();
+								arr[counter-2].son[0] = stk.top();stk.pop();
+								stk.push(&arr[counter-2]);
+							}
 
-            |   DEC {cout<<30<<' ';
-					addNode("DECS");
-					arr[counter-1].son[0] = stk.top();stk.pop();	
-					stk.push(&arr[counter-1]);					   
-			   }
+	|	EXP LOGICALAND EXP  {
+								cout<<"deal with exp -> exp LOGICALAND exp\n";
+								addNode("EXP");
+								char *tmp = ("LOGICALAND(%s)",$2);addNode(tmp);
+								arr[counter-2].son[1] = &arr[counter-1];
+								arr[counter-2].son[2] = stk.top();stk.pop();
+								arr[counter-2].son[0] = stk.top();stk.pop();
+								stk.push(&arr[counter-2]);
+	                        }
 
-            ;
-DEC         :   VAR {cout<<31<<' ';
-					addNode("DEC");
-					arr[counter-1].son[0] = stk.top();stk.pop();	
-					stk.push(&arr[counter-1]);	 
-			   }
+	|	EXP LOGICALOR EXP   {
+								cout<<"deal with exp -> exp LOGICALOR exp\n";
+								addNode("EXP");
+								char *tmp = ("LOGICALOR(%s)",$2);addNode(tmp);
+								arr[counter-2].son[1] = &arr[counter-1];
+								arr[counter-2].son[2] = stk.top();stk.pop();
+								arr[counter-2].son[0] = stk.top();stk.pop();
+								stk.push(&arr[counter-2]);
+	                        }
 
-            |   VAR ASSIGNOP INIT {cout<<32<<' ';
-					addNode("DEC");addNode("ASSIGNOP");
-					arr[counter-2].son[2] = stk.top();stk.pop();
-					arr[counter-2].son[0] = stk.top();stk.pop();
-					arr[counter-2].son[1] = &arr[counter-1];
-					stk.push(&arr[counter-2]);	 
-			   }
-            ;
-INIT        :   EXPS  { cout<<33<<' ';
-					addNode("INIT");
-					arr[counter-1].son[0] = stk.top();stk.pop();	
-					stk.push(&arr[counter-1]);	 
-			   }
-            |   LC ARGS RC  {cout<<34<<' ';
-					addNode("INIT");
-					addNode("LC");
-					addNode("RC");
-					arr[counter-3].son[0] = &arr[counter-2];
-					arr[counter-3].son[2] = &arr[counter-1];
-					arr[counter-3].son[1] = stk.top();stk.pop();	
-					stk.push(&arr[counter-3]);	 
-			   }
-            ;
-ARRS        :   LB EXP RB ARRS {cout<<35<<' ';
-					addNode("ARRS");
-					addNode("LB");
-					addNode("RB");
-					arr[counter-3].son[0] = &arr[counter-2];
-					arr[counter-3].son[2] = &arr[counter-1];
-					arr[counter-3].son[3] = stk.top();stk.pop();
-					arr[counter-3].son[1] = stk.top();stk.pop();	
-					stk.push(&arr[counter-3]);	 
-			   }
-            |  { addNode("ARRS");addNode("empty");arr[counter-2].son[0] = &arr[counter-1];}
-            ;
-ARGS        :   EXP COMMA ARGS { cout<<36<<' ';
-					addNode("ARRS");
-					addNode("COMMA");
-					arr[counter-2].son[1] = &arr[counter-1];
-					arr[counter-2].son[2] = stk.top();stk.pop();
-					arr[counter-2].son[0] = stk.top();stk.pop();
-					stk.push(&arr[counter-3]);	
-			   }
-            |   EXPS {cout<<37<<' ';
-					addNode("ARGS");
-					arr[counter-1].son[0] = stk.top();stk.pop();
-					stk.push(&arr[counter-1]);
-			   }
-            ;
+	|	EXP BINASSIGNOP EXP    {
+								cout<<"deal with exp -> exp BINASSIGNOP exp\n";
+								addNode("EXP");
+								char *tmp = ("BINASSIGNOP(%s)",$2);addNode(tmp);
+								arr[counter-2].son[1] = &arr[counter-1];
+								arr[counter-2].son[2] = stk.top();stk.pop();
+								arr[counter-2].son[0] = stk.top();stk.pop();
+								stk.push(&arr[counter-2]);	
+	                        }
 
-EXPS        :   EXP {cout<<38<<' ';
-			   		addNode("EXPS");
-					arr[counter-1].son[0] = stk.top();stk.pop();
-					stk.push(&arr[counter-1]);
-			   }
-			|   { addNode("EXPS");addNode("empty");arr[counter-2].son[0] = &arr[counter-1];}
+	|	EXP ASSIGNOP EXP    {
+								cout<<"deal with exp -> exp assignop exp\n";
+								addNode("EXP");
+								addNode("ASSIGNOP");
+								arr[counter-2].son[1] = &arr[counter-1];
+								arr[counter-2].son[2] = stk.top();stk.pop();
+								arr[counter-2].son[0] = stk.top();stk.pop();
+								stk.push(&arr[counter-2]);
+							}	
+	;
+FEXP:
+		EXP 				{
+								cout<<"deal with fexp -> exp\n";
+								addNode("FEXP");
+								arr[counter-1].son[0] = stk.top();stk.pop();
+								stk.push(&arr[counter-1]);
+							}
+	|	/*EMPTY*/           {   cout<<"deal with fexp -> empty\n";
+								addNode("EXPS");addNode("empty");
+								arr[counter-2].son[0] = &arr[counter-1];
+								stk.push(&arr[counter-2]);	
+							}
 
-EXP         :   EXP BINARYOP1 EXP {
-					addNode("EXP");
-					char *tmp = ("BINARYOP:%S",$2);
-					addNode(tmp);
-					arr[counter-2].son[1] = &arr[counter-1];
-					arr[counter-2].son[2] = stk.top();stk.pop();
-					arr[counter-2].son[0] = stk.top();stk.pop();
-					stk.push(&arr[counter-2]);
-			   }
-	  	    |   EXP BINARYOP2 EXP { 
-					addNode("EXP");
-					char *tmp = ("BINARYOP:%S",$2);
-					addNode(tmp);
-					arr[counter-2].son[1] = &arr[counter-1];
-					arr[counter-2].son[2] = stk.top();stk.pop();
-					arr[counter-2].son[0] = stk.top();stk.pop();
-					stk.push(&arr[counter-2]);
-			   }
-			|   EXP '-' EXP { 
-					addNode("EXP");
-					addNode("BINARYOP:-");
-					arr[counter-2].son[1] = &arr[counter-1];
-					arr[counter-2].son[2] = stk.top();stk.pop();
-					arr[counter-2].son[0] = stk.top();stk.pop();
-					stk.push(&arr[counter-2]);
-			   }
-	       
-            |   '-' EXP  %prec UMINUS {
-					addNode("EXP");
-					addNode("UNIARYOP:-");
-					arr[counter-2].son[0] = &arr[counter-1];
-					arr[counter-2].son[1] = stk.top();stk.pop();
-					stk.push(&arr[counter-2]);					
- 				}
-            |   LP EXP RP   { 
-					addNode("EXP");addNode("LP");addNode("RP");
-					arr[counter-3].son[0] = &arr[counter-2];
-					arr[counter-3].son[2] = &arr[counter-1];
-					arr[counter-3].son[1] = stk.top();stk.pop();	
-					stk.push(&arr[counter-3]);	
-			   }
-            |   ID  { 
-					cout<<5;
-					addNode("EXP");char *tmp = ("ID(%s)",$1);addNode(tmp);
-					arr[counter-2].son[0] = &arr[counter-1];
-					stk.push(&arr[counter-2]);
-			   }
-            |   EXP DOT ID { 
-					addNode("EXP");addNode("DOT");addNode("ID"); 
-					arr[counter-3].son[1] = &arr[counter-2];
-					arr[counter-3].son[2] = &arr[counter-1];
-					arr[counter-3].son[0] = stk.top();stk.pop();	
-					stk.push(&arr[counter-3]);	
-			   }
-            |   INT {
-					addNode("EXP");
-					addNode("INT");
-					arr[counter-2].son[0] = &arr[counter-1];
-					stk.push(&arr[counter-2]);					
- 			   }
-	    ;
+
+ARRS:
+		LB EXP RB ARRS      {
+								cout<<"deal with arrs -> lb exp rb arrs\n";
+								addNode("ARRS");
+								addNode("LB");
+								addNode("RB");
+								arr[counter-3].son[0] = &arr[counter-2];
+								arr[counter-3].son[2] = &arr[counter-1];
+								arr[counter-3].son[3] = stk.top();stk.pop();
+								arr[counter-3].son[1] = stk.top();stk.pop();	
+								stk.push(&arr[counter-3]);	 
+							}
+	|	/*EMPTY*/			{
+								cout<<"deal with arrs -> empty\n";
+								addNode("ARRS");addNode("empty");
+								arr[counter-2].son[0] = &arr[counter-1];
+								stk.push(&arr[counter-2]);						
+							}
+	;
+
+ARGS:
+		EXP COMMA ARGS      {
+								cout<<"deal with args -> exp comma args\n";
+								addNode("ARRS");
+								addNode("COMMA");
+								arr[counter-2].son[1] = &arr[counter-1];
+								arr[counter-2].son[2] = stk.top();stk.pop();
+								arr[counter-2].son[0] = stk.top();stk.pop();
+								stk.push(&arr[counter-3]);	
+							}	
+
+	|	EXP					{
+								cout<<"deal with args -> exp\n";
+								addNode("ARGS");
+								arr[counter-1].son[0] = stk.top();stk.pop();
+								stk.push(&arr[counter-1]);
+							}	
+	;
+
 
 %%
 
-//#define SIZEOF_NODETYPE ((char *) &p->con - (char *)p)
 
+int main (int argc, char const *argv[]) {
 
-int main(void){
-    printf("%s\n","please input the small-c codes");	
-    yyparse();
-	preOrder(&arr[counter-1],1);
-    return 1;
+	if (argc == 1){
+		fprintf(stderr, "%s\n", "please write your code or specify the input file");
+
+		yyparse();
+		preOrder(&arr[counter-1],1);
+		return 0;
+	}
+
+	else if (argc == 2){
+		FILE *fin = fopen(argv[1],"r");
+		if (!fin) { 
+			return fprintf (stderr, "YACC: Input file %s does not exist!\n", argv[1]);
+		}
+		yyin = fin;
+		while(!feof(yyin)){
+			yyparse();
+		}
+		preOrder(&arr[counter-1],1);
+		fclose(fin);
+	}
+
+	else if (argc == 3){
+		FILE *fin = fopen(argv[1], "r");
+		FILE *fout = fopen(argv[2],"w");
+		if (!fin) {
+			return fprintf (stderr, "YACC: Input file %s does not exist!\n", argv[1]);
+		}
+		if (!fout) {
+			return fprintf (stderr, "YACC: Output file %s does not exist!\n", argv[2]);
+		}
+		yyin = fin;
+		yyout = fout;
+		while (!feof(yyin)){
+			yyparse();
+		}
+		preOrder(&arr[counter-1],1);
+		fclose(fin);
+		fclose(fout);
+	}
+
+	else {
+		fprintf(stderr, "%s\n" , "YACC: Wrong format.");
+		fprintf(stderr, "%s\n" , "YACC: or you can specify the source code path. \nexample --> $./a.out  inputFile outputFile\n");
+	}
+	return 0;
+}
+
+/* Added because panther doesn't have liby.a installed. */
+int yyerror (const char *msg) {
+	printFlag = false;
+	fprintf (stderr, "YACC: %s\n", msg);
+	fprintf(stderr, "YACC: line %d\n", yylineno);
+	fprintf(stderr, "YACC: at %s\n", yytext);
+	return -1;
 }
