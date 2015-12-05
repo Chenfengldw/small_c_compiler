@@ -38,7 +38,7 @@ bool printFlag = true;
 %token TYPE
 %token SEMI COMMA DOT ASSIGNOP LP RP LB RB LC RC STRUCT RETURN IF THEN ELSE BREAK CONT FOR
 
-%right	NOELSE ELSE
+%right	NOELSE ELSE   /* these are precedence definition to eliminate conflicts*/
 %right 		ASSIGNOP BINASSIGNOP
 %left       LOGICALOR
 %left		LOGICALAND
@@ -53,7 +53,7 @@ bool printFlag = true;
 %right		UNARYOP UNMINUS
 %left		DOT LP RP LB RB
 
-%start PROGRAM
+%start PROGRAM /* define start symbol*/
 
 %%
 PROGRAM:
