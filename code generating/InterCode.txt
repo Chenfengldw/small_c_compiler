@@ -1,0 +1,36 @@
+35 29
+defarr t1 1
+defarr t2 1
+defarr t3 4
+defarr t4 5
+defarr t5 5
+defarr t6 5
+def $v0 1
+deffunc main 0 $v0
+li t7 0
+lw t8,t7(t4)
+read t8
+li t9 0
+lw t10,t9(t2)
+read t10
+li t11 1
+lw t12,t11(t3)
+read t12
+li t13 1
+li t14 0
+lw t15,t14(t4)
+li t16 1
+lw t17,t16(t3)
+xor t18,t15,t17
+sw t18,t13(t5)
+move t19,t18
+li t21 1
+lw t22,t21(t5)
+li t23 0
+lw t24,t23(t2)
+beq t22 t24 goto 32
+goto 36
+li t26 0
+add t27,$0,215
+sw t27,t26(t3)
+move t28,t27
